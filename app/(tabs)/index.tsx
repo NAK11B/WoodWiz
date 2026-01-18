@@ -21,6 +21,7 @@ type BarkMatch = {
   confidence: number;
   filename?: string;
   distance?: number;
+  rank?: number;
 };
 
 export default function HomeScreen() {
@@ -31,6 +32,9 @@ export default function HomeScreen() {
   const [result, setResult] = useState<Wood | null>(null);
   const [showMore, setShowMore] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const [topMatches, setTopMatches] = useState<BarkMatch[]>([]);
+  const [mainMatch, setMainMatch] = useState<BarkMatch | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<BarkMatch | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const submitAnchorRef = useRef<View>(null);
@@ -55,7 +59,6 @@ export default function HomeScreen() {
   }, [hasImage]);
 
   useEffect(() => {
-    // sanity log so you know it's loaded
     const entryCount = (barkIndex as any)?.entries?.length ?? 0;
     console.log("Bark index entries:", entryCount);
   }, []);
@@ -79,6 +82,9 @@ export default function HomeScreen() {
     setStatus("idle");
     setStatusMessage("");
     setResult(null);
+    setTopMatches([]);
+    setMainMatch(null);
+    setSelectedMatch(null);
     setShowMore(false);
   }
 
@@ -103,20 +109,45 @@ export default function HomeScreen() {
     setStatus("idle");
     setStatusMessage("");
     setResult(null);
+    setTopMatches([]);
+    setMainMatch(null);
+    setSelectedMatch(null);
     setShowMore(false);
   }
 
+  function prettyValue(value?: string) {
+    if (!value) return "";
+    return value
+      .replace(/_/g, " ")
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
   function findWoodBySpeciesKey(speciesKey: string): Wood | null {
-    // Best: dataset id field equals folder name (oak_white, etc.)
     const byId = WOODS.find((w: any) => w.id === speciesKey);
     if (byId) return byId;
 
-    // Fallback: contains match in common name
     const keyAsWords = speciesKey.replace(/_/g, " ").toLowerCase();
     const byCommon = WOODS.find((w) =>
       (w.common_name || "").toLowerCase().includes(keyAsWords)
     );
     return byCommon ?? null;
+  }
+
+  function setSelectedMatchAndResult(match: BarkMatch) {
+    const wood = findWoodBySpeciesKey(match.speciesKey);
+    if (!wood) {
+      Alert.alert(
+        "Not in WoodWiz yet",
+        `Matched "${prettyValue(match.speciesKey)}" but it's not in WOODS yet.`
+      );
+      return;
+    }
+
+    setSelectedMatch(match);
+    setResult(wood);
+    setStatus("done");
   }
 
   function handleSubmitImage() {
@@ -125,6 +156,9 @@ export default function HomeScreen() {
     setStatus("processing");
     setStatusMessage("Identifying wood...");
     setResult(null);
+    setTopMatches([]);
+    setMainMatch(null);
+    setSelectedMatch(null);
 
     setTimeout(async () => {
       try {
@@ -147,26 +181,20 @@ export default function HomeScreen() {
           return;
         }
 
+        setTopMatches(matches);
+
         const top = matches[0];
-        console.log("Top match:", top);
+        setMainMatch(top);
 
-        const wood = findWoodBySpeciesKey(top.speciesKey);
-        if (!wood) {
-          setStatus("error");
-          setStatusMessage(`Matched "${top.speciesKey}" but not in WOODS yet.`);
-          return;
-        }
-
-        setResult(wood);
-        setStatus("done");
-
+        // Banner message stays tied to the MAIN match only
         const confPct = Number.isFinite(top.confidence)
           ? (top.confidence * 100).toFixed(0)
           : "??";
+        setStatus("done");
+        setStatusMessage(`Match: ${prettyValue(top.speciesKey)} (${confPct}%)`);
 
-        setStatusMessage(
-          `Match: ${top.speciesKey} (${confPct}%)`
-        );
+        // Default detail card selection = main match
+        setSelectedMatchAndResult(top);
       } catch (e) {
         console.log("Match error:", e);
         setStatus("error");
@@ -181,16 +209,10 @@ export default function HomeScreen() {
     setStatus("idle");
     setStatusMessage("");
     setResult(null);
+    setTopMatches([]);
+    setMainMatch(null);
+    setSelectedMatch(null);
     setShowMore(false);
-  }
-
-  function prettyValue(value?: string) {
-    if (!value) return "";
-    return value
-      .replace(/_/g, " ")
-      .trim()
-      .toLowerCase()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   function Section({ title, text }: { title: string; text?: string }) {
@@ -212,6 +234,60 @@ export default function HomeScreen() {
       </View>
     );
   }
+
+  function ConfidenceBar({ value }: { value: number }) {
+    const pct = Math.max(0, Math.min(100, value));
+    return (
+      <View style={styles.confBarTrack}>
+        <View style={[styles.confBarFill, { width: `${pct}%` }]} />
+      </View>
+    );
+  }
+
+  function AlternateMatches({ matches }: { matches: BarkMatch[] }) {
+    if (!matches || matches.length < 2) return null;
+
+    // Only 2 alternates
+    const alt = matches.slice(1, 3);
+
+    return (
+      <View style={{ marginTop: 16 }}>
+        <Text style={styles.quickFactsTitle}>Alternate Matches</Text>
+
+        {alt.map((m, idx) => {
+          const pct = Number.isFinite(m.confidence) ? m.confidence * 100 : 0;
+          const isSelected = selectedMatch?.speciesKey === m.speciesKey;
+
+          return (
+            <TouchableOpacity
+              key={`${m.speciesKey}-${idx}`}
+              style={[styles.altCard, isSelected ? styles.altCardSelected : null]}
+              activeOpacity={0.85}
+              onPress={() => setSelectedMatchAndResult(m)}
+            >
+              <View style={styles.altRow}>
+                <Text style={styles.altTitle}>{prettyValue(m.speciesKey)}</Text>
+                <Text style={styles.altPct}>{pct.toFixed(0)}%</Text>
+              </View>
+
+              <ConfidenceBar value={pct} />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
+
+  const activeMatch = selectedMatch ?? mainMatch ?? null;
+  const activeConfPct =
+    activeMatch && Number.isFinite(activeMatch.confidence)
+      ? activeMatch.confidence * 100
+      : 0;
+
+  const canReturnToMain =
+    !!mainMatch &&
+    !!selectedMatch &&
+    mainMatch.speciesKey !== selectedMatch.speciesKey;
 
   return (
     <ScrollView ref={scrollRef} contentContainerStyle={styles.container}>
@@ -276,12 +352,17 @@ export default function HomeScreen() {
 
       {/* Status Banner */}
       {status !== "idle" && (
-        <View
+        <Pressable
+          disabled={!canReturnToMain}
+          onPress={() => {
+            if (mainMatch) setSelectedMatchAndResult(mainMatch);
+          }}
           style={[
             styles.statusBanner,
             status === "processing" && styles.statusBannerProcessing,
             status === "done" && styles.statusBannerSuccess,
             status === "error" && styles.statusBannerError,
+            canReturnToMain ? styles.statusBannerClickable : null,
           ]}
         >
           {status === "processing" ? (
@@ -300,8 +381,9 @@ export default function HomeScreen() {
             numberOfLines={2}
           >
             {statusMessage}
+            {canReturnToMain ? " (tap to return)" : ""}
           </Text>
-        </View>
+        </Pressable>
       )}
 
       {/* Result Card */}
@@ -309,6 +391,17 @@ export default function HomeScreen() {
         <View style={styles.resultCard}>
           <Text style={styles.resultTitle}>{result.common_name}</Text>
           <Text style={styles.resultSub}>{result.scientific_name}</Text>
+
+          {/* Confidence for the currently selected details */}
+          {activeMatch && (
+            <View style={{ marginTop: 10 }}>
+              <View style={styles.altRow}>
+                <Text style={styles.confLabel}>Confidence</Text>
+                <Text style={styles.altPct}>{activeConfPct.toFixed(0)}%</Text>
+              </View>
+              <ConfidenceBar value={activeConfPct} />
+            </View>
+          )}
 
           <View style={styles.divider} />
 
@@ -337,6 +430,8 @@ export default function HomeScreen() {
               <Section title="Safety Notes" text={result.safety_notes} />
               <Section title="Confidence Notes" text={result.confidence_notes} />
 
+              <AlternateMatches matches={topMatches} />
+
               <TouchableOpacity style={styles.moreButton} onPress={() => setShowMore(false)}>
                 <Text style={styles.moreButtonText}>Show Less</Text>
               </TouchableOpacity>
@@ -358,7 +453,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  header: { width: "100%", height: 120, justifyContent: "center", alignItems: "center" },
+  header: {
+    width: "100%",
+    height: 120,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   headerBackground: { position: "absolute", width: "100%", height: "100%" },
   headerText: { fontSize: 40, fontWeight: "bold", color: "#1f7a1f" },
 
@@ -424,7 +524,14 @@ const styles = StyleSheet.create({
     borderColor: "#cfe8cf",
   },
 
-  statusBannerProcessing: { backgroundColor: "#f3f3f3", borderColor: "#e0e0e0" },
+  statusBannerClickable: {
+    borderColor: "#1f7a1f",
+  },
+
+  statusBannerProcessing: {
+    backgroundColor: "#f3f3f3",
+    borderColor: "#e0e0e0",
+  },
   statusBannerSuccess: { backgroundColor: "#eef7ee", borderColor: "#cfe8cf" },
   statusBannerError: { backgroundColor: "#fdecee", borderColor: "#f2b8bf" },
   statusBannerIcon: { fontSize: 14 },
@@ -443,6 +550,7 @@ const styles = StyleSheet.create({
 
   resultTitle: { fontSize: 22, fontWeight: "bold" },
   resultSub: { marginTop: 2, marginBottom: 8, color: "#666", fontStyle: "italic" },
+
   divider: { height: 1, backgroundColor: "#eee", marginVertical: 10 },
 
   quickFactsTitle: { fontWeight: "bold", marginBottom: 8 },
@@ -474,4 +582,49 @@ const styles = StyleSheet.create({
   },
 
   moreButtonText: { fontWeight: "bold", color: "#1f7a1f" },
+
+  confLabel: { fontSize: 12, color: "#666", fontWeight: "bold" },
+
+  confBarTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "#eee",
+    overflow: "hidden",
+    marginTop: 8,
+  },
+
+  confBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: "#1f7a1f",
+  },
+
+  altCard: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    backgroundColor: "#fafafa",
+  },
+
+  altCardSelected: {
+    borderColor: "#1f7a1f",
+    backgroundColor: "#eef7ee",
+  },
+
+  altRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  altTitle: {
+    fontWeight: "bold",
+    fontSize: 14,
+    flexShrink: 1,
+    paddingRight: 8,
+  },
+
+  altPct: { fontWeight: "bold", color: "#145214" },
 });

@@ -74,6 +74,14 @@ function euclidean(a: number[], b: number[]) {
   return Math.sqrt(s);
 }
 
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
 export async function matchBarkPhoto(
   photoUri: string,
   barkIndex: BarkIndex,
@@ -94,7 +102,8 @@ export async function matchBarkPhoto(
   const decoded = jpeg.decode(bytes, { useTArray: true });
   const q = extractFeaturesFromRGBA(decoded.data, decoded.width, decoded.height);
 
-  const bestBySpecies = new Map<string, number>();
+  // Track best (lowest) distance per species AND which filename produced it
+  const bestBySpecies = new Map<string, { dist: number; filename: string }>();
 
   for (const e of barkIndex.entries) {
     const dHist = euclidean(q.hist, e.features.hist);
@@ -102,16 +111,42 @@ export async function matchBarkPhoto(
     const dist = dHist + dEdge * 0.25;
 
     const prev = bestBySpecies.get(e.speciesKey);
-    if (prev === undefined || dist < prev) bestBySpecies.set(e.speciesKey, dist);
+    if (prev === undefined || dist < prev.dist) {
+      bestBySpecies.set(e.speciesKey, { dist, filename: e.filename });
+    }
   }
 
-  return Array.from(bestBySpecies.entries())
-    .map(([speciesKey, dist]) => ({ speciesKey, dist }))
+  const ranked = Array.from(bestBySpecies.entries())
+    .map(([speciesKey, best]) => ({
+      speciesKey,
+      dist: best.dist,
+      filename: best.filename,
+    }))
     .sort((a, b) => a.dist - b.dist)
-    .slice(0, topK)
-    .map((r, i) => ({
+    .slice(0, topK);
+
+  if (ranked.length === 0) return [];
+
+  // Normalize confidence across the returned topK so values are visibly different.
+  // Lower dist = better. Map best -> ~0.95 and worst -> ~0.55 (tunable).
+  const bestDist = ranked[0].dist;
+  const worstDist = ranked[ranked.length - 1].dist;
+  const denom = Math.max(1e-9, worstDist - bestDist);
+
+  const bestConf = 0.95;
+  const worstConf = 0.55;
+
+  return ranked.map((r, i) => {
+    // t=0 for best, t=1 for worst
+    const t = clamp((r.dist - bestDist) / denom, 0, 1);
+    const conf = lerp(bestConf, worstConf, t);
+
+    return {
       rank: i + 1,
       speciesKey: r.speciesKey,
-      confidence: Math.max(0.05, Math.min(0.99, 1 / (1 + r.dist))),
-    }));
+      filename: r.filename,
+      distance: r.dist,
+      confidence: clamp(conf, 0.05, 0.99),
+    };
+  });
 }
