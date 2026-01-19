@@ -419,7 +419,10 @@ export default function HomeScreen() {
           <Section title="Avoid Uses" text={result.avoid_uses} />
 
           {!showMore && (
-            <TouchableOpacity style={styles.moreButton} onPress={() => setShowMore(true)}>
+            <TouchableOpacity
+              style={styles.moreButton}
+              onPress={() => setShowMore(true)}
+            >
               <Text style={styles.moreButtonText}>Show More</Text>
             </TouchableOpacity>
           )}
@@ -432,7 +435,10 @@ export default function HomeScreen() {
 
               <AlternateMatches matches={topMatches} />
 
-              <TouchableOpacity style={styles.moreButton} onPress={() => setShowMore(false)}>
+              <TouchableOpacity
+                style={styles.moreButton}
+                onPress={() => setShowMore(false)}
+              >
                 <Text style={styles.moreButtonText}>Show Less</Text>
               </TouchableOpacity>
             </>
@@ -460,7 +466,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerBackground: { position: "absolute", width: "100%", height: "100%" },
-  headerText: { fontSize: 40, fontWeight: "bold", color: "#1f7a1f" },
+
+  // FONT A (Cinzel) for title
+  headerText: {
+    fontSize: 40,
+    color: "#1f7a1f",
+    fontFamily: "Cinzel-Bold",
+  },
 
   imageBox: {
     width: "90%",
@@ -478,7 +490,10 @@ const styles = StyleSheet.create({
   imageBoxHasImage: { backgroundColor: "#000" },
   disabledContainer: { opacity: 0.7 },
   placeholderWrap: { alignItems: "center", paddingHorizontal: 18 },
-  imageBoxText: { fontWeight: "bold" },
+
+  // Small text = Montserrat
+  imageBoxText: { fontFamily: "Montserrat-Medium" },
+
   previewImage: { width: "100%", height: "100%" },
 
   button: {
@@ -491,9 +506,12 @@ const styles = StyleSheet.create({
   },
 
   secondaryButton: { backgroundColor: "#2f7d2f" },
-  buttonText: { color: "white", fontSize: 18, fontWeight: "bold" },
 
-  nextStepHint: { marginTop: 14, fontWeight: "bold", color: "#1f7a1f" },
+  // FONT A (Cinzel) for buttons
+  buttonText: { color: "white", fontSize: 18, fontFamily: "Cinzel-SemiBold" },
+
+  // Small text = Montserrat
+  nextStepHint: { marginTop: 14, color: "#1f7a1f", fontFamily: "Montserrat-SemiBold" },
 
   primarySubmitButton: {
     marginTop: 10,
@@ -504,9 +522,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  primarySubmitText: { color: "white", fontSize: 18, fontWeight: "bold" },
+  // FONT A (Cinzel) for primary button
+  primarySubmitText: { color: "white", fontSize: 18, fontFamily: "Cinzel-SemiBold" },
+
   linkButton: { marginTop: 10 },
-  linkButtonText: { fontWeight: "bold", color: "#1f7a1f" },
+
+  // Small text = Montserrat
+  linkButtonText: { color: "#1f7a1f", fontFamily: "Montserrat-SemiBold" },
 
   statusBanner: {
     alignSelf: "flex-start",
@@ -534,8 +556,11 @@ const styles = StyleSheet.create({
   },
   statusBannerSuccess: { backgroundColor: "#eef7ee", borderColor: "#cfe8cf" },
   statusBannerError: { backgroundColor: "#fdecee", borderColor: "#f2b8bf" },
+
   statusBannerIcon: { fontSize: 14 },
-  statusBannerText: { fontWeight: "bold", fontSize: 13, color: "#145214" },
+
+  // Small text = Montserrat
+  statusBannerText: { fontSize: 13, color: "#145214", fontFamily: "Montserrat-SemiBold" },
   statusBannerTextError: { color: "#7a0012" },
 
   resultCard: {
@@ -548,12 +573,23 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
   },
 
-  resultTitle: { fontSize: 22, fontWeight: "bold" },
-  resultSub: { marginTop: 2, marginBottom: 8, color: "#666", fontStyle: "italic" },
+  // Titles = Cinzel
+  resultTitle: { fontSize: 22, fontFamily: "Cinzel-SemiBold" },
+
+  // Small/secondary = Montserrat
+  resultSub: {
+    marginTop: 2,
+    marginBottom: 8,
+    color: "#666",
+    fontStyle: "italic",
+    fontFamily: "Montserrat-Regular",
+  },
 
   divider: { height: 1, backgroundColor: "#eee", marginVertical: 10 },
 
-  quickFactsTitle: { fontWeight: "bold", marginBottom: 8 },
+  // Small headings = Montserrat
+  quickFactsTitle: { marginBottom: 8, fontFamily: "Montserrat-SemiBold" },
+
   factsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
 
   factPill: {
@@ -566,11 +602,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
   },
 
-  factLabel: { fontSize: 12, color: "#666", fontWeight: "bold" },
-  factValue: { fontSize: 16, fontWeight: "bold", color: "#222" },
+  factLabel: { fontSize: 12, color: "#666", fontFamily: "Montserrat-SemiBold" },
+  factValue: { fontSize: 16, color: "#222", fontFamily: "Montserrat-SemiBold" },
 
-  sectionTitle: { fontWeight: "bold", marginBottom: 4 },
-  bodyText: { lineHeight: 20 },
+  sectionTitle: { marginBottom: 4, fontFamily: "Montserrat-SemiBold" },
+  bodyText: { lineHeight: 20, fontFamily: "Montserrat-Regular" },
 
   moreButton: {
     marginTop: 14,
@@ -581,9 +617,9 @@ const styles = StyleSheet.create({
     borderColor: "#1f7a1f",
   },
 
-  moreButtonText: { fontWeight: "bold", color: "#1f7a1f" },
+  moreButtonText: { color: "#1f7a1f", fontFamily: "Cinzel-SemiBold" },
 
-  confLabel: { fontSize: 12, color: "#666", fontWeight: "bold" },
+  confLabel: { fontSize: 12, color: "#666", fontFamily: "Montserrat-SemiBold" },
 
   confBarTrack: {
     height: 10,
@@ -620,11 +656,11 @@ const styles = StyleSheet.create({
   },
 
   altTitle: {
-    fontWeight: "bold",
     fontSize: 14,
     flexShrink: 1,
     paddingRight: 8,
+    fontFamily: "Montserrat-SemiBold",
   },
 
-  altPct: { fontWeight: "bold", color: "#145214" },
+  altPct: { color: "#145214", fontFamily: "Montserrat-SemiBold" },
 });
