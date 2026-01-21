@@ -1,4 +1,5 @@
-import woods from "./woods.json";
+import woodsMO from "./woods_mo.json";
+import woodsNA from "./woods_na.json";
 
 export type Wood = {
   id: string;
@@ -17,10 +18,13 @@ export type Wood = {
   confidence_notes: string;
 };
 
-// woods.json is an array of objects, so we cast it
-export const WOODS = woods as Wood[];
+export const DATASET_MODE: "NA" | "MO" = "MO"; // <-- flip this if needed
 
-// simple lookup helper
+const active = DATASET_MODE === "MO" ? woodsMO : woodsNA;
+
+// Cast JSON array to Wood[]
+export const WOODS = active as Wood[];
+
 export function getWoodById(id: string): Wood | undefined {
   return WOODS.find((w) => w.id === id);
 }
