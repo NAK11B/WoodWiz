@@ -26,6 +26,12 @@ type BarkMatch = {
   rank?: number;
 };
 
+// ✅ Performance timer helper (high-res when available, safe fallback)
+function nowMs(): number {
+  const p: any = globalThis as any;
+  return typeof p?.performance?.now === "function" ? p.performance.now() : Date.now();
+}
+
 export default function HomeScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "processing" | "done" | "error">(
@@ -155,6 +161,9 @@ export default function HomeScreen() {
   function handleSubmitImage() {
     if (!photoUri || status === "processing") return;
 
+    // ✅ Start total submit timing (includes UX delay)
+    const submitStart = nowMs();
+
     setStatus("processing");
     setStatusMessage("Identifying wood...");
     setResult(null);
@@ -171,11 +180,27 @@ export default function HomeScreen() {
           return;
         }
 
+        // ✅ Measure matcher runtime (excludes your 1200ms UX delay)
+        const matchStart = nowMs();
+
         const matches = (await matchBarkPhoto(
           photoUri,
           barkIndex as any,
           5
         )) as BarkMatch[];
+
+        const matchEnd = nowMs();
+
+        const matcherMs = matchEnd - matchStart;
+        const totalMs = matchEnd - submitStart;
+
+        console.log(
+          `[Perf] matchBarkPhoto: ${matcherMs.toFixed(
+            1
+          )}ms | total submit flow: ${totalMs.toFixed(1)}ms | hasMatches: ${
+            !!matches && matches.length > 0
+          }`
+        );
 
         if (!matches || matches.length === 0) {
           setStatus("error");
@@ -530,20 +555,20 @@ const styles = StyleSheet.create({
 
   linkButtonText: { color: "#1f7a1f", fontFamily: "Montserrat-SemiBold" },
 
-statusBanner: {
-  alignSelf: "center",
-  marginTop: 12,
-  marginBottom: 6,
-  paddingVertical: 6,
-  paddingHorizontal: 12,
-  borderRadius: 999,
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 6,
-  backgroundColor: "#eaf7ea",
-  borderWidth: 1,
-  borderColor: "#cfe8cf",
-},
+  statusBanner: {
+    alignSelf: "center",
+    marginTop: 12,
+    marginBottom: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#eaf7ea",
+    borderWidth: 1,
+    borderColor: "#cfe8cf",
+  },
 
   statusBannerClickable: {
     borderColor: "#1f7a1f",
