@@ -89,6 +89,19 @@ UX refinement
 
 Branding and production builds
 
+## Performance Evaluation
+
+Basic performance instrumentation was added to evaluate the bark matching pipeline during runtime.
+
+Testing was performed on an Android emulator (Medium Phone, API 36) using Expo Go.
+
+Observed results:
+- Average matcher runtime: ~150–200 ms per image
+- Total submit flow includes an intentional ~1.2s “Identifying…” delay for user feedback
+- Invalid or low-quality images are rejected early via a quality gate
+
+This confirms the matching process is responsive and suitable for real-time, on-device use within a proof-of-concept scope.
+
 📋 Project Management & Documentation
 
 All development planning, artifacts, and workflow are tracked using Trello to demonstrate structured project management.
