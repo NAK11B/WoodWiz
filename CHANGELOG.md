@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## v1.1 – Performance Evaluation & Validation (Iteration 4 – February 2026)
+
+### Added
+- Runtime performance instrumentation for bark-matching pipeline
+- High-resolution timing to measure matcher execution time separately from UI delays
+- Console logging to report matcher runtime and total submission flow duration
+
+### Evaluated
+- Confirmed on-device matcher runtime averages ~150–200 ms per image
+- Verified total submission flow delay is dominated by intentional UX feedback delay
+- Validated early rejection of low-quality or invalid images
+
+### Notes
+Iteration 4 focused on evaluation and validation rather than feature expansion.  
+The application reached a stable state at the end of Iteration 3, so this iteration prioritized confirming performance characteristics, system responsiveness, and readiness for future expansion without introducing regressions.
+
+This establishes a measurable performance baseline for future dataset growth or machine learning integration.
+
+---
+
 ## v1.0 – Missouri Dataset Prototype (January 2026)
 
 ### Added
